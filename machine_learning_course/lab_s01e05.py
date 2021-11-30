@@ -1,10 +1,14 @@
+import mlflow.sklearn
 import pandas as pd
 import random
 import numpy as np
 import missingno as msno
 import matplotlib.pyplot as plt
-from sklearn.model_selection import train_test_split
+from sklearn.model_selection import train_test_split, GridSearchCV
 from sklearn.ensemble import RandomForestClassifier
+from sklearn.svm import SVC
+from sklearn.linear_model import LinearRegression
+
 
 class Lab5:
 
@@ -18,6 +22,8 @@ class Lab5:
         self.todo3()
         self.todo8()
         # self.todo5()
+        # self.todo9()
+        self.todo()
 
     def todo1(self):
         self.titanic_dataset.info()
@@ -77,15 +83,15 @@ class Lab5:
         self.titanic_dataset["pclass"] = self.titanic_dataset["pclass"].astype(float)
         self.titanic_dataset["fare"] = self.titanic_dataset["fare"].astype(float)
 
-        self.titanic_dataset["famili_size"] = self.titanic_dataset["sibsp"] + \
+        self.titanic_dataset["family_size"] = self.titanic_dataset["sibsp"] + \
                 self.titanic_dataset["parch"]
-        self.titanic_dataset["famili_size"] = self.titanic_dataset["famili_size"]\
+        self.titanic_dataset["family_size"] = self.titanic_dataset["family_size"]\
             .astype(float)
         self.titanic_dataset.drop(["sibsp", "parch", "embarked"], axis=1, inplace=True)
 
     def todo8(self):
         self.clf = RandomForestClassifier()
-        self.clf.fit(self.X_train, self.y_train)
+        self.clf.fit(self.X_train, self.y_train.values.ravel())
         self.clf.score(self.X_test, self.y_test)
 
     def survived(self):
@@ -94,6 +100,28 @@ class Lab5:
             return True
         else:
             return False
+
+    def todo9(self):
+        param_grid= {"n_estimators": [1, 10, 100, 1000],
+             "max_depth": [None, 1, 10, 100],
+             "class_weight": ["balanced", None]}
+
+        self.gs = GridSearchCV(self.clf, param_grid)
+        self.gs.fit(self.X_train, self.y_train.values.ravel())
+        print(self.gs.best_params_)
+
+    def todo(self):
+        import time
+        mlflow.sklearn.autolog()
+        clfs = [RandomForestClassifier(), SVC(), LinearRegression()]
+        for clf in clfs:
+            with mlflow.start_run(run_name=type(clf).__name__):
+                start_time = time.perf_counter()
+                clf.fit(self.X_train, self.y_train)
+                duration = time.perf_counter() - start_time
+                scr = clf.score(self.X_test, self.y_test)
+                mlflow.log_metric("score", scr)
+                mlflow.log_metric("duration", duration)
 
 
 if __name__ == "__main__":

@@ -1,0 +1,18 @@
+artifact_path: model
+flavors:
+  python_function:
+    env: conda.yaml
+    loader_module: mlflow.sklearn
+    model_path: model.pkl
+    python_version: 3.9.7
+  sklearn:
+    pickled_model: model.pkl
+    serialization_format: cloudpickle
+    sklearn_version: '1.0'
+run_id: 8023ca94b4fd481f9c12ce4a194aaab9
+signature:
+  inputs: '[{"name": "pclass", "type": "double"}, {"name": "sex", "type": "double"},
+    {"name": "age", "type": "float"}, {"name": "fare", "type": "double"}, {"name":
+    "family_size", "type": "double"}]'
+  outputs: '[{"type": "tensor", "tensor-spec": {"dtype": "int64", "shape": [-1]}}]'
+utc_time_created: '2021-11-30 12:40:10.858967'

@@ -1,0 +1,15 @@
+artifact_uri: file:///C:/Users/Lab/PycharmProjects/PG/machine_learning_course/mlruns/0/a3e4ea89e2b9461992027e12e41e5b1f/artifacts
+end_time: 1638275783292
+entry_point_name: ''
+experiment_id: '0'
+lifecycle_stage: deleted
+name: ''
+run_id: a3e4ea89e2b9461992027e12e41e5b1f
+run_uuid: a3e4ea89e2b9461992027e12e41e5b1f
+source_name: ''
+source_type: 4
+source_version: ''
+start_time: 1638275780367
+status: 3
+tags: []
+user_id: Lab
