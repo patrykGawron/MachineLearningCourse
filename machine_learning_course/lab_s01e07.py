@@ -13,6 +13,7 @@ from sklearn.ensemble import RandomForestClassifier
 from sklearn.svm import SVC
 from sklearn.linear_model import LinearRegression
 from torch import nn
+from torch.utils.data import DataLoader
 
 
 class KlasyfikatorTekstu3000(nn.Module):
@@ -22,6 +23,7 @@ class KlasyfikatorTekstu3000(nn.Module):
         self.fc = nn.Linear(embed_dim, 4)
         self.loss_function = nn.CrossEntropyLoss()
         self.optimizer = torch.optim.SGD(self.parameters(), lr=5)
+        self.scheduler = torch.optim.lr_scheduler.StepLR(self.optimizer, 1, 0.1)
 
     def forward(self, text, offsets):
         out = self.embedding(text, offsets)
@@ -30,8 +32,17 @@ class KlasyfikatorTekstu3000(nn.Module):
 
 class Laboratory:
     def __init__(self):
+        self.ag_news_label = {
+            1: "World",
+            2: "Sports",
+            3: "Business",
+            4: "Sci/Tec"
+        }
         self.todo1()
         self.todo2()
+        self.test()
+        news = "Messi vs Ronaldo fans, UEFA from the chaotic Champions League last-16 draw"
+        print(self.ag_news_label[self.predict(news)])
 
     def todo1(self):
         self.tokenizer = get_tokenizer("basic_english")
@@ -47,23 +58,71 @@ class Laboratory:
         self.text_pipeline = lambda x: self.vocab(self.tokenizer(x))
 
     def todo2(self):
-        from torch.utils.data import DataLoader
         dataset = AG_NEWS(split='train')
         dataloader = DataLoader(dataset, batch_size=8, shuffle=False, collate_fn=self.collate_batch)
 
         self.model = KlasyfikatorTekstu3000(len(self.vocab), 5)
-        for labels, texts, offsets in dataloader:
-            print(self.model(texts, offsets))
-            exit()
 
+    #TODO: 6
     def todo6(self, dataloader):
         self.model.train()
 
-        for label, text, offset in dataloader:
+        total_acc, total_count = 0, 0
+        for idx, (label, text, offset) in enumerate(dataloader):
             self.model.optimizer.zero_grad()
             pred_label = self.model(text, offset)
             loss = self.model.loss_function(pred_label, label)
             loss.backward()
+
+            self.model.optimizer.step()
+
+            total_acc += (pred_label.argmax(1) == label).sum().item()
+            total_count += label.size(0)
+
+            if idx % 500 == 0:
+                print("Count: ", idx, "Acc: ", total_acc / total_count * 100, " %")
+                total_acc, total_count = 0, 0
+
+    #TODO: 6
+    def evaluate(self, dataloader):
+        self.model.eval()
+
+        with torch.no_grad():
+            total_acc, total_count = 0, 0
+            for idx, (label, text, offset) in enumerate(dataloader):
+                pred_label = self.model(text, offset)
+
+                total_acc += (pred_label.argmax(1) == label).sum().item()
+                total_count += label.size(0)
+
+        return total_acc / total_count * 100
+
+    def test(self):
+        train_iter, test_iter = AG_NEWS()
+        from torchtext.data.functional import to_map_style_dataset
+        train_dataset = to_map_style_dataset(train_iter)
+        test_dataset = to_map_style_dataset(test_iter)
+
+        EPOCHS = 10
+        BATCH_SIZE = 64
+
+        train_dataloader = DataLoader(train_dataset, batch_size=BATCH_SIZE, shuffle=True, collate_fn=self.collate_batch)
+        test_dataloader = DataLoader(test_dataset, batch_size=BATCH_SIZE, shuffle=True, collate_fn=self.collate_batch)
+
+        for epoch in range(1, EPOCHS + 1):
+            self.todo6(train_dataloader)
+            acc_val = self.evaluate(test_dataloader)
+            print("="*20)
+            print("\n", "Acc epoch ", epoch, ": ", acc_val, "\n")
+            print("="*20)
+
+    def predict(self, text):
+        self.model = self.model.to('cpu')
+        with torch.no_grad():
+            text = torch.tensor(self.text_pipeline(text))
+            output = self.model(text, torch.tensor([0]))
+            return output.argmax(1).item() + 1
+
 
 
     def yield_tokens(self, iter):
@@ -83,6 +142,7 @@ class Laboratory:
         offset = torch.tensor(offset[:-1]).cumsum(dim=0)
 
         return label_list, text_list, offset
+
 
 if __name__ == "__main__":
     lab = Laboratory()
